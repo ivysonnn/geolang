@@ -1,0 +1,45 @@
+#ifndef TOKENS_H
+#define TOKENS_H
+
+enum tokens {
+    TK_ID = 256,
+    TK_NUM,
+    TK_REAL,
+    TK_STRING,
+    TK_FN,
+    TK_VAR,
+    TK_IF,
+    TK_FOR,
+    TK_WHILE,
+    TK_DO,
+    TK_ELSE,
+    TK_ELSEIF,
+    TK_SUM,
+    TK_MIN,
+    TK_MUL,
+    TK_DIV,
+    TK_EQ,
+    TK_NEQ,
+    TK_GREATER,
+    TK_LESS,
+    TK_GEQ,
+    TK_LEQ,
+    TK_ASSIGN,
+    TK_RETURN,
+    TK_ARROW,
+    TK_IN,
+    TK_RANGE,
+    TK_COMMA,
+    TK_DOT,
+    TK_COLON,
+    TK_SEMI,
+    TK_LBRAC,
+    TK_RBRAC,
+    TK_LCURLY,
+    TK_RCURLY,
+    TK_LPAREN,
+    TK_RPAREN,  
+    TK_EOF
+};
+
+#endif // TOKENS_H

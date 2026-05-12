@@ -1,0 +1,8 @@
+lex.yy.c
+
+lex
+*.out
+
+*.o
+
+build/
