@@ -28,7 +28,7 @@ fn partition(arr: mut [float], low: int, high: int) -> int {
 }
 
 // Subprograma principal de ordenação (Recursivo)
-fn quicksort(arr: mut [float], low: int, high: int) -> void {
+fn quicksort(arr: mut [float], low: int, high: int) {
     if low < high {
         // Inferência estática de tipo: o compilador sabe que 'partition' retorna 'int'
         var pi = partition(arr, low, high);
@@ -41,7 +41,7 @@ fn quicksort(arr: mut [float], low: int, high: int) -> void {
 // PROGRAMA PRINCIPAL: Entrada, Invocação e Saída
 // ---------------------------------------------------------
 
-fn main() -> void {
+fn main() {
     io.print("SISTEMA GEOLANG - ORDENACAO DE DISTANCIAS");
     
     var n: int = io.read_int("Quantas rotas deseja analisar? ");
