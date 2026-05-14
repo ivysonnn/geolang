@@ -29,19 +29,30 @@ in {return TK_IN;}
 ":" {return TK_COLON;}
 "(" {return TK_LPAREN;}
 ")" {return TK_RPAREN;}
-"{" {return TK_LBRAC;}
-"}" {return TK_RBRAC;}
-"[" {return TK_LCURLY;}
-"]" {return TK_RCURLY;}
+"{" {return TK_LCURLY;}
+"}" {return TK_RCURLY;}
+"[" {return TK_LBRACK;}
+"]" {return TK_RBRACK;}
 "." {return TK_DOT;}
 , {return TK_COMMA;}
 -> {return TK_ARROW;}
 ".." {return TK_RANGE;}
 
-([0-9]+"."[0-9]*)|([0-9]*"."[0-9]+) {return TK_REAL;}
+([0-9]+"."[0-9]+) {return TK_REAL;}
 ([0-9]+) {return TK_NUM;}
 [a-zA-Z_][a-zA-Z0-9_]* {return TK_ID;}
 \"([^\\\"]|\\.)*\" {return TK_STRING;}
 [ \t\n\r]+          { /* nada */ }
 "//"[^\n]*          { /* nada */}
 .                  { printf("Erro: caractere desconhecido %s\n", yytext); }
+%%
+
+#ifndef yywrap
+int yywrap (void) {return 1;}
+#endif
+
+int main(void){
+    int tok;
+    while((tok = yylex()) != 0);
+    return 0;
+}
