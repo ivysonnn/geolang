@@ -13,14 +13,16 @@ Conforme descrito no *Modern Compiler Implementation* de Andrew Appel, a anális
 ```
 geolang/
 ├── src/lexer/
-│   ├── scanner.l    # Regras léxicas (Flex)
-│   └── tokens.h     # Enumeração dos tokens
+│   ├── scanner.l        # Regras léxicas (Flex)
+│   ├── scanner.debug.l  # Versão debug com saída verbose dos tokens
+│   └── tokens.h         # Enumeração dos tokens
 ├── examples/
 │   └── quicksort.geo
 └── makefile
 ```
 
 - **`scanner.l`** — Especificação Flex. Cada regra associa uma expressão regular a uma ação (retorno do token correspondente). É o equivalente direto às tabelas de transição derivadas das regex no capítulo 2 do Appel.
+- **`scanner.debug.l`** — Versão idêntica ao `scanner.l`, mas com `printf` em cada ação para rastrear o token e o texto reconhecido (`yytext`) durante o desenvolvimento.
 - **`tokens.h`** — Define o `enum tokens` com códigos a partir de 256.
 
 ## Categorias de tokens
@@ -28,6 +30,8 @@ geolang/
 | Categoria | Exemplos |
 |-----------|----------|
 | Palavras-chave | `fn`, `var`, `if`, `else`, `elseif`, `for`, `while`, `do`, `return`, `in` |
+| Tipos primitivos | `int`, `float`, `bool`, `string`, `struct`, `mut` |
+| Tipos geoespaciais | `Point`, `Line`, `Polygon`, `matrix` |
 | Operadores | `+`, `-`, `*`, `/`, `=`, `==`, `!=`, `<`, `>`, `<=`, `>=` |
 | Pontuação | `;`, `:`, `,`, `.`, `..`, `->`, `()`, `{}`, `[]` |
 | Literais | `TK_NUM` (inteiro), `TK_REAL` (ponto flutuante), `TK_STRING` |
@@ -43,6 +47,7 @@ Pré-requisitos: `gcc`, `flex`, `make`.
 ```sh
 make           # gera build/lexer
 make test      # executa o lexer sobre examples/quicksort.geo
+make debug     # build com scanner.debug.l (imprime cada token reconhecido)
 make clean     # remove build/
 ```
 

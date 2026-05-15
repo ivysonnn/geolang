@@ -12,6 +12,16 @@ else {printf("[DEBUG] TK_ELSE: '%s'\n", yytext); return TK_ELSE;}
 elseif {printf("[DEBUG] TK_ELSEIF: '%s'\n", yytext); return TK_ELSEIF;}
 return {printf("[DEBUG] TK_RETURN: '%s'\n", yytext); return TK_RETURN;}
 in {printf("[DEBUG] TK_IN: '%s'\n", yytext); return TK_IN;}
+int     {printf("[DEBUG] TK_INT: '%s'\n", yytext); return TK_INT;}
+float   {printf("[DEBUG] TK_FLOAT: '%s'\n", yytext); return TK_FLOAT;}
+mut     {printf("[DEBUG] TK_MUT: '%s'\n", yytext); return TK_MUT;}
+struct  {printf("[DEBUG] TK_STRUCT: '%s'\n", yytext); return TK_STRUCT;}
+bool    {printf("[DEBUG] TK_BOOL: '%s'\n", yytext); return TK_BOOL;}
+string  {printf("[DEBUG] TK_STRING: '%s'\n", yytext); return TK_STRING;}
+Point   {printf("[DEBUG] TK_POINT: '%s'\n", yytext); return TK_POINT;}
+Line    {printf("[DEBUG] TK_LINE: '%s'\n", yytext); return TK_LINE;}
+Polygon {printf("[DEBUG] TK_POLYGON: '%s'\n", yytext); return TK_POLYGON;}
+matrix  {printf("[DEBUG] TK_MATRIX: '%s'\n", yytext); return TK_MATRIX;}
 "==" {printf("[DEBUG] TK_EQ: '%s'\n", yytext); return TK_EQ;}
 "!=" {printf("[DEBUG] TK_NEQ: '%s'\n", yytext); return TK_NEQ;}
 ">=" {printf("[DEBUG] TK_GEQ: '%s'\n", yytext); return TK_GEQ;}

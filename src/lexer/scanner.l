@@ -13,6 +13,16 @@ else {return TK_ELSE;}
 elseif {return TK_ELSEIF;}
 return {return TK_RETURN;}
 in {return TK_IN;}
+int     {return TK_INT;}
+float   {return TK_FLOAT;}
+mut     {return TK_MUT;}
+struct  {return TK_STRUCT;}
+bool    {return TK_BOOL;}
+string  {return TK_STRING;}
+Point   {return TK_POINT;}
+Line    {return TK_LINE;}
+Polygon {return TK_POLYGON;}
+matrix  {return TK_MATRIX;}
 
 "==" {return TK_EQ;}
 "!=" {return TK_NEQ;}
