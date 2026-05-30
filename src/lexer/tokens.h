@@ -6,15 +6,24 @@ enum tokens {
     TK_NUM,
     TK_REAL,
     TK_STRING,
+
+    /* tipos escalares */
     TK_INT,
     TK_FLOAT,
+    TK_BOOL,
+    TK_VOID,
+
+    /* modificadores e estruturas */
     TK_MUT,
     TK_STRUCT,
-    TK_BOOL,
+
+    /* tipos geométricos */
     TK_POINT,
     TK_LINE,
     TK_POLYGON,
     TK_MATRIX,
+
+    /* palavras-chave de controle */
     TK_FN,
     TK_VAR,
     TK_IF,
@@ -23,21 +32,30 @@ enum tokens {
     TK_DO,
     TK_ELSE,
     TK_ELSEIF,
-    TK_SUM,
-    TK_MIN,
-    TK_MUL,
-    TK_DIV,
+    TK_RETURN,
+    TK_IN,
+    TK_ALLOCATE,
+
+    /* operadores relacionais */
     TK_EQ,
     TK_NEQ,
     TK_GREATER,
     TK_LESS,
     TK_GEQ,
     TK_LEQ,
+
+    /* operadores aritméticos e atribuição */
     TK_ASSIGN,
-    TK_RETURN,
+    TK_SUM,
+    TK_MIN,
+    TK_MUL,
+    TK_DIV,
+
+    /* operadores especiais */
     TK_ARROW,
-    TK_IN,
     TK_RANGE,
+
+    /* pontuação */
     TK_COMMA,
     TK_DOT,
     TK_COLON,
@@ -47,8 +65,9 @@ enum tokens {
     TK_LCURLY,
     TK_RCURLY,
     TK_LPAREN,
-    TK_RPAREN,  
+    TK_RPAREN,
+
     TK_EOF
 };
 
-#endif // TOKENS_H
+#endif /* TOKENS_H */
