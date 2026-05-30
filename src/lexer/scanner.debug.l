@@ -1,5 +1,6 @@
+%option yylineno noinput nounput
 %{
-    #include "tokens.h"
+    #include "../parser/parser.tab.h"
 %}
 %%
 fn {printf("[DEBUG] TK_FN: '%s'\n", yytext); return TK_FN;}

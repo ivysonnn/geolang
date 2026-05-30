@@ -1,43 +1,46 @@
-# Variáveis de Compilação
-CC = gcc
-FLEX = flex
-CFLAGS = -Wall
-LIBS = -lfl
+CC      = gcc
+CFLAGS  = -Wall -Wextra
 
-# Caminhos
-SRC_DIR = src/lexer
-BUILD_DIR = build
-TARGET = $(BUILD_DIR)/lexer
-DEBUG_TARGET = $(BUILD_DIR)/lexer_debug
+LEX     = flex
+YACC    = bison
 
-# Arquivos
-LEX_SRC = $(SRC_DIR)/scanner.l
-LEX_OUT = $(BUILD_DIR)/lex.yy.c
+SRC_LEXER  = src/lexer/scanner.l
+SRC_PARSER = src/parser/parser.y
 
-# Comando padrão: compila tudo
-all: prepare $(TARGET)
+GEN_LEX    = src/parser/lex.yy.c
+GEN_PARSER = src/parser/parser.tab.c
+GEN_HDR    = src/parser/parser.tab.h
 
-# Cria a pasta build se não existir
-prepare:
-	mkdir -p $(BUILD_DIR)
+OUT = geolang
 
-# Gera o código C a partir do Flex
-$(LEX_OUT): $(LEX_SRC)
-	$(FLEX) -o $(LEX_OUT) $(LEX_SRC)
+# -------------------------------------------------------
+# Build completo: parser + lexer integrados
+# -------------------------------------------------------
+all: $(OUT)
 
-# Compila o executável final
-$(TARGET): $(LEX_OUT)
-	$(CC) $(CFLAGS) $(LEX_OUT) -I$(SRC_DIR) -o $(TARGET) $(LIBS)
+$(OUT): $(GEN_PARSER) $(GEN_LEX)
+	$(CC) $(CFLAGS) -o $(OUT) $(GEN_PARSER) $(GEN_LEX) -lfl
+
+$(GEN_PARSER) $(GEN_HDR): $(SRC_PARSER)
+	$(YACC) -d -v -o $(GEN_PARSER) $(SRC_PARSER)
+
+$(GEN_LEX): $(SRC_LEXER) $(GEN_HDR)
+	$(LEX) -o $(GEN_LEX) $(SRC_LEXER)
+
+# -------------------------------------------------------
+# Só o lexer (como antes, para testes isolados)
+# -------------------------------------------------------
+lexer-only:
+	$(LEX) -o src/lexer/lex.yy.c $(SRC_LEXER)
+	$(CC) $(CFLAGS) -o geolang-lexer src/lexer/lex.yy.c -lfl
+
+# -------------------------------------------------------
+# Teste com o exemplo
+# -------------------------------------------------------
+test:
+	./$(OUT) < examples/quicksort.geo
 
 clean:
-	rm -rf $(BUILD_DIR)
-
-# Executa o lexer com o exemplo de teste automaticamente
-test: all
-	./$(TARGET) < examples/quicksort.geo
-debug: prepare
-	$(FLEX) -o $(BUILD_DIR)/scanner.debug.c $(SRC_DIR)/scanner.debug.l
-	$(CC) $(CFLAGS) $(BUILD_DIR)/scanner.debug.c -I$(SRC_DIR) -o $(DEBUG_TARGET) $(LIBS)
-	./$(DEBUG_TARGET) < examples/quicksort.geo
-
-.PHONY: all prepare clean test
+	rm -f $(GEN_LEX) $(GEN_PARSER) $(GEN_HDR)
+	rm -f src/parser/parser.output
+	rm -f $(OUT) geolang-lexer
