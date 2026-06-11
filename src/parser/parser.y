@@ -67,10 +67,8 @@ decl
 fn_decl
     : TK_FN TK_ID TK_LPAREN param_list TK_RPAREN ret_type
       TK_LCURLY stmt_list TK_RCURLY
-        { printf("[PARSER] Funcao declarada com parametros\n"); }
     | TK_FN TK_ID TK_LPAREN TK_RPAREN ret_type
       TK_LCURLY stmt_list TK_RCURLY
-        { printf("[PARSER] Funcao declarada sem parametros\n"); }
     ;
 
 ret_type
@@ -90,9 +88,7 @@ param_list
 
 param
     : TK_ID TK_COLON TK_MUT type
-        { printf("[PARSER] Parametro mut declarado\n"); }
     | TK_ID TK_COLON type
-        { printf("[PARSER] Parametro declarado\n"); }
     ;
 
 /* ---------------------------------------------------------- */
@@ -101,7 +97,6 @@ param
 
 struct_decl
     : TK_STRUCT TK_ID TK_LCURLY field_list TK_RCURLY
-        { printf("[PARSER] Struct declarada\n"); }
     ;
 
 field_list
@@ -136,7 +131,6 @@ type
 
 stmt_list
     : stmt_list stmt
-    | /* vazio */
     ;
 
 stmt
@@ -155,16 +149,12 @@ stmt
 /* var x = expr;       */
 var_decl
     : TK_VAR TK_ID TK_COLON type TK_ASSIGN expr TK_SEMI
-        { printf("[PARSER] Declaracao de variavel com tipo e valor\n"); }
     | TK_VAR TK_ID TK_COLON type TK_SEMI
-        { printf("[PARSER] Declaracao de variavel com tipo\n"); }
     | TK_VAR TK_ID TK_ASSIGN expr TK_SEMI
-        { printf("[PARSER] Declaracao de variavel com inferencia\n"); }
     ;
 
 assign_stmt
     : lvalue TK_ASSIGN expr TK_SEMI
-        { printf("[PARSER] Atribuicao\n"); }
     ;
 
 lvalue
@@ -179,39 +169,31 @@ lvalue
 
 if_stmt
     : TK_IF expr TK_LCURLY stmt_list TK_RCURLY elseif_chain else_part
-        { printf("[PARSER] If-elseif-else\n"); }
     ;
 
 elseif_chain
     : elseif_chain TK_ELSEIF expr TK_LCURLY stmt_list TK_RCURLY
-    | /* vazio */
     ;
 
 else_part
     : TK_ELSE TK_LCURLY stmt_list TK_RCURLY
-    | /* vazio */
     ;
 
 for_stmt
     : TK_FOR TK_ID TK_IN expr TK_RANGE expr TK_LCURLY stmt_list TK_RCURLY
-        { printf("[PARSER] For-in range\n"); }
     ;
 
 while_stmt
     : TK_WHILE expr TK_LCURLY stmt_list TK_RCURLY
-        { printf("[PARSER] While\n"); }
     ;
 
 do_while_stmt
     : TK_DO TK_LCURLY stmt_list TK_RCURLY TK_WHILE expr TK_SEMI
-        { printf("[PARSER] Do-while\n"); }
     ;
 
 return_stmt
     : TK_RETURN expr TK_SEMI
-        { printf("[PARSER] Return com valor\n"); }
     | TK_RETURN TK_SEMI
-        { printf("[PARSER] Return void\n"); }
     ;
 
 expr_stmt
@@ -262,7 +244,6 @@ primary
 
 allocate_expr
     : TK_ALLOCATE TK_LPAREN expr TK_RPAREN
-        { printf("[PARSER] Alocacao dinamica\n"); }
     ;
 
 arg_list
