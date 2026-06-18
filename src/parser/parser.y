@@ -131,6 +131,7 @@ type
 
 stmt_list
     : stmt_list stmt
+    |
     ;
 
 stmt
@@ -173,10 +174,12 @@ if_stmt
 
 elseif_chain
     : elseif_chain TK_ELSEIF expr TK_LCURLY stmt_list TK_RCURLY
+    |
     ;
 
 else_part
     : TK_ELSE TK_LCURLY stmt_list TK_RCURLY
+    |
     ;
 
 for_stmt

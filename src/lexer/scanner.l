@@ -61,4 +61,6 @@ matrix      { return TK_MATRIX; }
 .                       { printf("Erro léxico: caractere desconhecido '%s'\n", yytext); }
 %%
 
+#ifndef yywrap
 int yywrap(void) { return 1; }
+#endif
