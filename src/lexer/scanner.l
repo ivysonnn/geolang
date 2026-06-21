@@ -1,5 +1,6 @@
 %option yylineno noinput nounput
 %{
+    #include <string.h>
     #include "../parser/parser.tab.h"
 %}
 %%
@@ -21,6 +22,8 @@ mut         { return TK_MUT; }
 struct      { return TK_STRUCT; }
 bool        { return TK_BOOL; }
 string      { return TK_STRING; }
+true        { return TK_TRUE; }
+false       { return TK_FALSE; }
 Point       { return TK_POINT; }
 Line        { return TK_LINE; }
 Polygon     { return TK_POLYGON; }
@@ -51,16 +54,14 @@ matrix      { return TK_MATRIX; }
 "["         { return TK_LBRACK; }
 "]"         { return TK_RBRACK; }
 
-[0-9]+"."[0-9]+         { return TK_REAL; }
-[0-9]+                  { return TK_NUM; }
-[a-zA-Z_][a-zA-Z0-9_]* { return TK_ID; }
-\"([^\\\"]|\\.)*\"      { return TK_STRING; }
+[0-9]+"."[0-9]+         { yylval.str = strdup(yytext); return TK_REAL; }
+[0-9]+                  { yylval.str = strdup(yytext); return TK_NUM; }
+[a-zA-Z_][a-zA-Z0-9_]*  { yylval.str = strdup(yytext); return TK_ID; }
+\"([^\\\"]|\\.)*\"      { yylval.str = strdup(yytext); return TK_STRING; }
 
 [ \t\n\r]+              { /* ignora espaço */ }
 "//"[^\n]*              { /* ignora comentário */ }
-.                       { printf("Erro léxico: caractere desconhecido '%s'\n", yytext); }
+.                       { printf("Erro lexico: caractere desconhecido '%s'\n", yytext); }
 %%
 
-#ifndef yywrap
 int yywrap(void) { return 1; }
-#endif

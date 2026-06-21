@@ -4,22 +4,29 @@ CFLAGS  = -Wall -Wextra
 LEX     = flex
 YACC    = bison
 
-SRC_LEXER  = src/lexer/scanner.l
-SRC_PARSER = src/parser/parser.y
+SRC_LEXER     = src/lexer/scanner.l
+SRC_LEXER_DBG = src/lexer/scanner.debug.l
+SRC_PARSER    = src/parser/parser.y
+SRC_SEM_C     = src/semantic/symbol_table.c
+SRC_SEM_H     = src/semantic/symbol_table.h
+SRC_CODEGEN_C = src/codegen/strbuf.c src/codegen/label_gen.c
+SRC_CODEGEN_H = src/codegen/strbuf.h src/codegen/label_gen.h
 
-GEN_LEX    = src/parser/lex.yy.c
-GEN_PARSER = src/parser/parser.tab.c
-GEN_HDR    = src/parser/parser.tab.h
+GEN_LEX     = src/lexer/lex.yy.c
+GEN_LEX_DBG = src/lexer/lex.debug.yy.c
+GEN_PARSER  = src/parser/parser.tab.c
+GEN_HDR     = src/parser/parser.tab.h
 
-OUT = geolang
+OUT      = geolang
+OUT_DBG  = geolang-debug
 
 # -------------------------------------------------------
-# Build completo: parser + lexer integrados
+# Build completo: parser + lexer + tabela de simbolos + codegen
 # -------------------------------------------------------
 all: $(OUT)
 
-$(OUT): $(GEN_PARSER) $(GEN_LEX)
-	$(CC) $(CFLAGS) -o $(OUT) $(GEN_PARSER) $(GEN_LEX) -lfl
+$(OUT): $(GEN_PARSER) $(GEN_LEX) $(SRC_SEM_C) $(SRC_CODEGEN_C)
+	$(CC) $(CFLAGS) -o $(OUT) $(GEN_PARSER) $(GEN_LEX) $(SRC_SEM_C) $(SRC_CODEGEN_C) -lfl
 
 $(GEN_PARSER) $(GEN_HDR): $(SRC_PARSER)
 	$(YACC) -d -v -o $(GEN_PARSER) $(SRC_PARSER)
@@ -28,19 +35,47 @@ $(GEN_LEX): $(SRC_LEXER) $(GEN_HDR)
 	$(LEX) -o $(GEN_LEX) $(SRC_LEXER)
 
 # -------------------------------------------------------
-# Só o lexer (como antes, para testes isolados)
+# Build com scanner.debug.l (imprime cada token reconhecido)
 # -------------------------------------------------------
-lexer-only:
-	$(LEX) -o src/lexer/lex.yy.c $(SRC_LEXER)
-	$(CC) $(CFLAGS) -o geolang-lexer src/lexer/lex.yy.c -lfl
+debug: $(GEN_PARSER) $(GEN_LEX_DBG) $(SRC_SEM_C) $(SRC_CODEGEN_C)
+	$(CC) $(CFLAGS) -o $(OUT_DBG) $(GEN_PARSER) $(GEN_LEX_DBG) $(SRC_SEM_C) $(SRC_CODEGEN_C) -lfl
+
+$(GEN_LEX_DBG): $(SRC_LEXER_DBG) $(GEN_HDR)
+	$(LEX) -o $(GEN_LEX_DBG) $(SRC_LEXER_DBG)
 
 # -------------------------------------------------------
-# Teste com o exemplo
+# Testes isolados da tabela de simbolos (sem parser)
+# -------------------------------------------------------
+test-symbols:
+	$(CC) $(CFLAGS) -o src/semantic/test_symbol_table \
+		src/semantic/symbol_table.c src/semantic/test_symbol_table.c
+	./src/semantic/test_symbol_table
+
+# -------------------------------------------------------
+# Teste com os exemplos
 # -------------------------------------------------------
 test:
 	./$(OUT) < examples/quicksort.geo
 
+test-minimo:
+	./$(OUT) < examples/minimo.geo
+
+test-erro:
+	./$(OUT) < examples/erro_sintatico.geo
+
+# -------------------------------------------------------
+# Gera o .c reduzido de um exemplo e tenta compila-lo com gcc,
+# para validar que o C produzido e sintaticamente valido.
+# Uso: make codegen-check FILE=examples/teste_fatorial.geo
+# -------------------------------------------------------
+codegen-check:
+	./$(OUT) < $(FILE) | sed -n '/=== Codigo C reduzido gerado ===/,$$p' | tail -n +2 > /tmp/geolang_codegen_check.c
+	$(CC) -Wall -Wextra -c /tmp/geolang_codegen_check.c -o /tmp/geolang_codegen_check.o
+
 clean:
-	rm -f $(GEN_LEX) $(GEN_PARSER) $(GEN_HDR)
+	rm -f $(GEN_LEX) $(GEN_LEX_DBG) $(GEN_PARSER) $(GEN_HDR)
 	rm -f src/parser/parser.output
-	rm -f $(OUT) geolang-lexer
+	rm -f $(OUT) $(OUT_DBG)
+	rm -f src/semantic/test_symbol_table
+
+.PHONY: all debug clean test test-minimo test-erro test-symbols codegen-check
