@@ -26,6 +26,8 @@ código-fonte (.geo)
 
 A análise léxica é especificada por expressões regulares implementadas por um autômato finito determinístico (DFA). A análise sintática é especificada por uma gramática livre de contexto implementada por um autômato de pilha (LALR(1)). A análise semântica e a geração de código seguem o esquema de **tradução dirigida pela sintaxe**: cada produção da gramática sintetiza atributos (tipo e fragmento de código C) a partir dos atributos de seus filhos.
 
+Quando a análise termina sem erro semântico, o código C gerado não é só impresso no terminal: é salvo em disco dentro da pasta `output/`, com o mesmo nome-base do `.geo` de entrada (ex.: `problemas/problema1.geo` → `output/problema1.c`), pronto para ser compilado com `gcc`.
+
 ## Estrutura
 
 ```
@@ -54,6 +56,10 @@ geolang/
 │   ├── teste_loops.geo              # while + do-while
 │   ├── teste_elseif.geo             # if/elseif/else em cadeia
 │   └── teste_*.geo                  # Demais casos de teste semântico (erros propositais)
+├── problemas/
+│   ├── problema1.geo                # Lista de exercícios do professor: expressão aritmética
+│   └── problema2.geo                # Lista de exercícios do professor: leitura em loop + faixas
+├── output/                          # Código C gerado (criado automaticamente, um .c por entrada)
 └── makefile
 ```
 
@@ -90,9 +96,17 @@ make              # compila lexer + parser + semântica + codegen → binário g
 make clean        # remove arquivos gerados
 ```
 
-Entrada via `stdin`. Tokens não reconhecidos produzem `Erro lexico: caractere desconhecido`. Erros sintáticos reportam a linha e o token inesperado. Erros semânticos reportam a linha e a descrição do problema (tipo incompatível, variável não declarada, etc.), sem interromper a análise no primeiro erro.
+O binário `geolang` aceita dois modos de entrada:
 
-Se a análise terminar sem nenhum erro semântico, o compilador imprime o código C reduzido equivalente ao programa, pronto para ser compilado por um `gcc` comum.
+```sh
+./geolang < arquivo.geo          # le da stdin (modo original); .c gerado vai para output/out.c
+./geolang caminho/arquivo.geo    # le do arquivo informado; .c gerado vai para output/arquivo.c
+./geolang caminho/arquivo.geo -o outra_pasta   # escolhe a pasta de saida do .c gerado (padrao: output/)
+```
+
+Tokens não reconhecidos produzem `Erro lexico: caractere desconhecido`. Erros sintáticos reportam a linha e o token inesperado. Erros semânticos reportam a linha e a descrição do problema (tipo incompatível, variável não declarada, etc.), sem interromper a análise no primeiro erro.
+
+Se a análise terminar sem nenhum erro semântico, o compilador imprime o código C reduzido equivalente ao programa no terminal **e** salva o mesmo conteúdo em `output/<nome>.c` (pasta criada automaticamente).
 
 ## Exemplos de execução
 
@@ -116,6 +130,25 @@ Se a análise terminar sem nenhum erro semântico, o compilador imprime o códig
 ./geolang < examples/teste_elseif.geo
 ```
 
+### Lista de exercícios do professor (`problemas/`)
+
+```sh
+make clean
+make
+./geolang problemas/problema1.geo    # gera output/problema1.c
+./geolang problemas/problema2.geo    # gera output/problema2.c
+```
+
+### Testando de verdade (compilar e executar o C gerado)
+
+```sh
+gcc -o /tmp/p1 output/problema1.c && /tmp/p1
+# esperado: 14.250000
+
+gcc -o /tmp/p2 output/problema2.c && /tmp/p2
+# pede numeros um a um; digite alguns valores e termine com um negativo
+```
+
 ## Alvos auxiliares do makefile
 
 ```sh
@@ -127,6 +160,9 @@ make debug           # build alternativo usando scanner.debug.l (mostra cada tok
 
 # Valida que o C reduzido gerado para um programa realmente compila com gcc:
 make codegen-check FILE=examples/teste_fatorial.geo
+
+# Gera o C reduzido, compila com gcc e EXECUTA, mostrando a saida real:
+make run FILE=problemas/problema1.geo
 ```
 
 ## Limitações conhecidas

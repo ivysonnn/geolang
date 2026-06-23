@@ -214,6 +214,23 @@ static bool is_main_function(const char *name) {
     return strcmp(name, "main") == 0;
 }
 
+/* Helper: escolhe o especificador de formato de printf adequado    */
+/* ao tipo real do argumento passado para io.print(...), evitando     */
+/* o comportamento indefinido de usar sempre "%s" (que so e valido     */
+/* para char*). Tipos geometricos/array (sintetizados como float*)      */
+/* e structs nao tem uma representacao textual simples e usam "%p"       */
+/* como fallback (imprime o endereco), documentado como limitacao.        */
+static const char *printf_format_for_type(const Type *t) {
+    if (t == NULL) return "%d";
+    switch (t->kind) {
+        case TYPE_INT:    return "%d";
+        case TYPE_BOOL:   return "%d";
+        case TYPE_FLOAT:  return "%f";
+        case TYPE_STRING: return "%s";
+        default:          return "%p";
+    }
+}
+
 /* ------------------------------------------------------------ */
 /* Atributo herdado do label de convergência final (Lend) de uma   */
 /* cadeia if/elseif/else. O Bison/LALR(1) não suporta atributos       */
@@ -1301,10 +1318,18 @@ postfix_expr
     /* limitação documentada (ver seção de limitações).                          */
     | TK_ID TK_DOT TK_ID TK_LPAREN arg_list TK_RPAREN
         {
-            char *args_code = type_list_join_code((TypeList *)$5);
+            TypeList *args = (TypeList *)$5;
+            char *args_code = type_list_join_code(args);
             StrBuf *sb = strbuf_create();
             if (strcmp($3, "print") == 0) {
-                strbuf_appendf(sb, "printf(\"%%s\\n\", %s)", args_code);
+                /* Escolhe o formato de printf de acordo com o tipo     */
+                /* real do primeiro (e, no uso atual da linguagem,        */
+                /* unico) argumento, evitando o comportamento indefinido    */
+                /* de assumir sempre char* (%s) para qualquer tipo.           */
+                const char *fmt = (args->head != NULL)
+                    ? printf_format_for_type(args->head->type)
+                    : "%d";
+                strbuf_appendf(sb, "printf(\"%s\\n\", %s)", fmt, args_code);
             } else if (strcmp($3, "read_int") == 0) {
                 strbuf_appendf(sb, "geolang_read_int(%s)", args_code);
             } else if (strcmp($3, "read_float") == 0) {
@@ -1316,7 +1341,7 @@ postfix_expr
             strbuf_destroy(sb);
             free(args_code);
             $$.type = type_create(TYPE_UNKNOWN);
-            type_list_destroy((TypeList *)$5);
+            type_list_destroy(args);
         }
     | TK_ID TK_DOT TK_ID TK_LPAREN TK_RPAREN
         {
@@ -1507,7 +1532,112 @@ void yyerror(const char *msg) {
             yylineno, msg, yytext);
 }
 
-int main(void) {
+/* ------------------------------------------------------------ */
+/* Suporte a escrita do código C gerado em arquivo.               */
+/* O compilador continua lendo o programa GeoLang via stdin       */
+/* (uso original, preservado por compatibilidade), mas agora        */
+/* também aceita argumentos de linha de comando para controlar       */
+/* onde o código C reduzido gerado é salvo em disco.                  */
+/* ------------------------------------------------------------ */
+
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <libgen.h>
+
+/* Cria o diretório (e pais, se necessário) caso não exista.       */
+/* Equivalente a 'mkdir -p'. Ignora erro se o diretório já existe.   */
+static void ensure_directory_exists(const char *path) {
+    char tmp[1024];
+    snprintf(tmp, sizeof(tmp), "%s", path);
+
+    for (char *p = tmp + 1; *p; p++) {
+        if (*p == '/') {
+            *p = '\0';
+            mkdir(tmp, 0755);
+            *p = '/';
+        }
+    }
+    mkdir(tmp, 0755);
+}
+
+/* Deriva o nome base do arquivo .c de saída a partir do nome do    */
+/* arquivo-fonte .geo informado (sem extensão), ou usa "out" como     */
+/* padrão quando a entrada é stdin (sem nome de arquivo disponível).   */
+static char *derive_output_filename(const char *input_path) {
+    char *result = (char *)malloc(256);
+    if (input_path == NULL) {
+        strcpy(result, "out.c");
+        return result;
+    }
+
+    char path_copy[512];
+    snprintf(path_copy, sizeof(path_copy), "%s", input_path);
+    char *base = basename(path_copy);
+
+    /* Remove a extensão .geo (ou qualquer extensão) do nome base. */
+    char *dot = strrchr(base, '.');
+    if (dot != NULL) *dot = '\0';
+
+    snprintf(result, 256, "%s.c", base);
+    return result;
+}
+
+/* Preâmbulo emitido no início de todo arquivo C gerado: includes      */
+/* padrão e pequenas funções de runtime que dão suporte às chamadas      */
+/* io.read_int(...)/io.read_float(...) usadas pelos programas GeoLang,     */
+/* já que o C reduzido do Anexo I não inclui leitura de entrada nativa      */
+/* na linguagem fonte — a leitura é delegada a essas funções auxiliares,     */
+/* implementadas com scanf() da biblioteca padrão de C. O parâmetro de        */
+/* mensagem (prompt) é impresso antes da leitura, replicando a assinatura      */
+/* esperada io.read_int("mensagem") / io.read_float("mensagem").                */
+#define GEOLANG_RUNTIME_PREAMBLE \
+    "#include <stdio.h>\n" \
+    "#include <stdlib.h>\n" \
+    "\n" \
+    "static int geolang_read_int(const char *prompt) {\n" \
+    "    int valor;\n" \
+    "    printf(\"%s\", prompt);\n" \
+    "    scanf(\"%d\", &valor);\n" \
+    "    return valor;\n" \
+    "}\n" \
+    "\n" \
+    "static float geolang_read_float(const char *prompt) {\n" \
+    "    float valor;\n" \
+    "    printf(\"%s\", prompt);\n" \
+    "    scanf(\"%f\", &valor);\n" \
+    "    return valor;\n" \
+    "}\n" \
+    "\n"
+
+int main(int argc, char **argv) {
+    /* Argumentos de linha de comando (todos opcionais):              */
+    /*   argv[1]        -> caminho do arquivo .geo de entrada           */
+    /*                     (se omitido, lê de stdin como antes)          */
+    /*   -o <dir>       -> diretório onde o .c gerado deve ser salvo      */
+    /*                     (padrão: "output")                              */
+    const char *input_path = NULL;
+    const char *output_dir = "output";
+
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "-o") == 0 && i + 1 < argc) {
+            output_dir = argv[i + 1];
+            i++;
+        } else {
+            input_path = argv[i];
+        }
+    }
+
+    FILE *input_stream = stdin;
+    if (input_path != NULL) {
+        input_stream = fopen(input_path, "r");
+        if (input_stream == NULL) {
+            fprintf(stderr, "Erro: nao foi possivel abrir o arquivo '%s'\n", input_path);
+            return 1;
+        }
+        extern FILE *yyin;
+        yyin = input_stream;
+    }
+
     printf("=== GeoLang Parser + Analisador Semantico ===\n");
 
     g_vars    = var_scope_stack_create();
@@ -1528,11 +1658,36 @@ int main(void) {
     struct_table_destroy(g_structs);
     func_table_destroy(g_funcs);
 
+    if (input_path != NULL) {
+        fclose(input_stream);
+    }
+
     if (result == 0 && g_semantic_errors == 0) {
         printf("=== Analise concluida com sucesso (0 erros semanticos) ===\n");
         printf("\n=== Codigo C reduzido gerado ===\n");
-        printf("#include <stdio.h>\n#include <stdlib.h>\n\n");
+        printf("%s", GEOLANG_RUNTIME_PREAMBLE);
         printf("%s", strbuf_cstr(g_code_output));
+
+        /* Escreve o mesmo conteúdo em um arquivo .c dentro da pasta   */
+        /* de saída configurada (padrão: "output/"), criando o            */
+        /* diretório automaticamente caso ainda não exista.                */
+        ensure_directory_exists(output_dir);
+
+        char *out_filename = derive_output_filename(input_path);
+        char out_path[768];
+        snprintf(out_path, sizeof(out_path), "%s/%s", output_dir, out_filename);
+
+        FILE *out_file = fopen(out_path, "w");
+        if (out_file == NULL) {
+            fprintf(stderr, "Aviso: nao foi possivel escrever o arquivo '%s'\n", out_path);
+        } else {
+            fprintf(out_file, "%s", GEOLANG_RUNTIME_PREAMBLE);
+            fprintf(out_file, "%s", strbuf_cstr(g_code_output));
+            fclose(out_file);
+            printf("\n=== Codigo C salvo em: %s ===\n", out_path);
+        }
+        free(out_filename);
+
     } else if (result == 0) {
         printf("=== Analise sintatica OK, mas %d erro(s) semantico(s) encontrado(s) ===\n",
                g_semantic_errors);
