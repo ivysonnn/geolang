@@ -1,0 +1,123 @@
+# ===========================================================
+# Makefile para Windows (cmd.exe + MinGW make)
+# Espelha o 'makefile' original (Linux), com os ajustes que o
+# ambiente Windows exige:
+#   - flex do GnuWin32 nao suporta '-o': usa '-t' + redirecionamento;
+#   - mkdir do MinGW tem 1 argumento (Linux usa 2): corrige no .c GERADO
+#     (parser.tab.c), sem tocar no fonte parser.y;
+#   - binarios tem extensao .exe;
+#   - sem '-lfl' (scanner usa %option noyywrap).
+#
+# Uso:
+#   mingw32-make -f makefile.windows
+#   mingw32-make -f makefile.windows run  FILE=problemas/problema5.geo
+#   mingw32-make -f makefile.windows clean
+#
+# Ajuste MINGW_BIN / GNUWIN_BIN se suas ferramentas estiverem em
+# outro lugar.
+# ===========================================================
+
+# Forca o cmd.exe como shell (evita que o make use um sh.exe do PATH)
+SHELL := cmd.exe
+.SHELLFLAGS := /c
+
+# Diretorios das ferramentas (gcc/objdump via msys2; flex/bison via GnuWin32)
+MINGW_BIN  := C:\msys64\mingw64\bin
+GNUWIN_BIN := C:\GnuWin32\bin
+
+# Prefixo que injeta as ferramentas no PATH apenas durante a receita
+PATHSET = set "PATH=$(MINGW_BIN);$(GNUWIN_BIN);%PATH%" &&
+
+CC   = gcc
+LEX  = flex
+YACC = bison
+
+SRC_LEXER     = src/lexer/scanner.l
+SRC_LEXER_DBG = src/lexer/scanner.debug.l
+SRC_PARSER    = src/parser/parser.y
+SRC_SEM_C     = src/semantic/symbol_table.c
+SRC_CODEGEN_C = src/codegen/strbuf.c src/codegen/label_gen.c
+
+GEN_LEX     = src/lexer/lex.yy.c
+GEN_LEX_DBG = src/lexer/lex.debug.yy.c
+GEN_PARSER  = src/parser/parser.tab.c
+GEN_HDR     = src/parser/parser.tab.h
+
+OUT     = geolang.exe
+OUT_DBG = geolang-debug.exe
+
+# Nome-base do arquivo de entrada para os alvos run/codegen-check
+NAME = $(notdir $(basename $(FILE)))
+
+# -----------------------------------------------------------
+# Build completo
+# -----------------------------------------------------------
+all: $(OUT)
+
+$(OUT): $(GEN_PARSER) $(GEN_LEX) $(SRC_SEM_C) $(SRC_CODEGEN_C)
+	$(PATHSET) $(CC) -Wall -o $(OUT) $(GEN_PARSER) $(GEN_LEX) $(SRC_SEM_C) $(SRC_CODEGEN_C)
+
+# bison gera parser.tab.c/.h; em seguida corrige o mkdir(2 args) para
+# mkdir(1 arg) no arquivo gerado (compatibilidade MinGW).
+$(GEN_PARSER) $(GEN_HDR): $(SRC_PARSER)
+	$(PATHSET) $(YACC) -d -v -o $(GEN_PARSER) $(SRC_PARSER)
+	powershell -NoProfile -Command "(Get-Content $(GEN_PARSER) -Raw) -replace 'mkdir\(tmp, 0755\)','mkdir(tmp)' | Set-Content $(GEN_PARSER) -Encoding ascii"
+
+# flex do GnuWin32 nao aceita '-o': escreve em stdout e redireciona.
+$(GEN_LEX): $(SRC_LEXER) $(GEN_HDR)
+	$(PATHSET) $(LEX) -t $(SRC_LEXER) > $(GEN_LEX)
+
+# -----------------------------------------------------------
+# Build com scanner.debug.l (imprime cada token reconhecido)
+# -----------------------------------------------------------
+debug: $(GEN_PARSER) $(GEN_LEX_DBG) $(SRC_SEM_C) $(SRC_CODEGEN_C)
+	$(PATHSET) $(CC) -Wall -o $(OUT_DBG) $(GEN_PARSER) $(GEN_LEX_DBG) $(SRC_SEM_C) $(SRC_CODEGEN_C)
+
+$(GEN_LEX_DBG): $(SRC_LEXER_DBG) $(GEN_HDR)
+	$(PATHSET) $(LEX) -t $(SRC_LEXER_DBG) > $(GEN_LEX_DBG)
+
+# -----------------------------------------------------------
+# Testes isolados da tabela de simbolos (sem parser)
+# -----------------------------------------------------------
+test-symbols:
+	$(PATHSET) $(CC) -Wall -o src/semantic/test_symbol_table.exe src/semantic/symbol_table.c src/semantic/test_symbol_table.c
+	src\semantic\test_symbol_table.exe
+
+# -----------------------------------------------------------
+# Testes com os exemplos (le do arquivo informado)
+# -----------------------------------------------------------
+test: $(OUT)
+	.\$(OUT) examples/quicksort.geo
+
+test-minimo: $(OUT)
+	.\$(OUT) examples/minimo.geo
+
+test-erro: $(OUT)
+	.\$(OUT) examples/erro_sintatico.geo
+
+# -----------------------------------------------------------
+# Gera o .c reduzido de um arquivo e tenta compila-lo com gcc,
+# validando que o C produzido e sintaticamente valido.
+# Uso: mingw32-make -f makefile.windows codegen-check FILE=problemas/problema5.geo
+# -----------------------------------------------------------
+codegen-check: $(OUT)
+	.\$(OUT) $(FILE)
+	$(PATHSET) $(CC) -Wall -c output/$(NAME).c -o output/$(NAME).o
+
+# -----------------------------------------------------------
+# Gera o .c reduzido, compila com gcc e EXECUTA de fato.
+# Uso: mingw32-make -f makefile.windows run FILE=problemas/problema5.geo
+# -----------------------------------------------------------
+run: $(OUT)
+	.\$(OUT) $(FILE)
+	$(PATHSET) $(CC) -Wall -o output/$(NAME).exe output/$(NAME).c
+	@echo --- saida do programa ---
+	output\$(NAME).exe
+
+# -----------------------------------------------------------
+# Limpeza
+# -----------------------------------------------------------
+clean:
+	-powershell -NoProfile -Command "Remove-Item -Force -ErrorAction SilentlyContinue $(GEN_LEX),$(GEN_LEX_DBG),$(GEN_PARSER),$(GEN_HDR),src/parser/parser.output,$(OUT),$(OUT_DBG),src/semantic/test_symbol_table.exe; exit 0"
+
+.PHONY: all debug clean test test-minimo test-erro test-symbols codegen-check run

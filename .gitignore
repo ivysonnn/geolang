@@ -6,3 +6,6 @@ lex
 *.o
 
 build/
+
+output/*.exe
+*.pdf

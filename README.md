@@ -108,6 +108,24 @@ Tokens não reconhecidos produzem `Erro lexico: caractere desconhecido`. Erros s
 
 Se a análise terminar sem nenhum erro semântico, o compilador imprime o código C reduzido equivalente ao programa no terminal **e** salva o mesmo conteúdo em `output/<nome>.c` (pasta criada automaticamente).
 
+### Compilação no Windows (`makefile.windows`)
+
+Pré-requisitos: `gcc` (MinGW/MSYS2), `flex` e `bison` (GnuWin32) e `make`. Ajuste, no topo do arquivo, as variáveis `MINGW_BIN` e `GNUWIN_BIN` caso suas ferramentas estejam em outros diretórios (padrão: `C:\msys64\mingw64\bin` e `C:\GnuWin32\bin`); elas são injetadas no `PATH` apenas durante cada receita.
+
+```powershell
+# build do compilador (gera geolang.exe)
+make -f makefile.windows
+
+# gera o .c, compila com gcc e EXECUTA o programa traduzido
+make -f makefile.windows run FILE=problemas/problema5.geo
+make -f makefile.windows run FILE=problemas/problema6.geo
+
+# remove os arquivos gerados
+make -f makefile.windows clean
+```
+
+> O alvo `run` é interativo (os programas leem do teclado via `io.read_int`). Para testar com entrada automática, redirecione um arquivo direto no executável gerado: `output\problema6.exe < entrada.txt`. Se o seu `make` for `mingw32-make`, troque `make` por `mingw32-make`.
+
 ## Exemplos de execução
 
 ```sh
