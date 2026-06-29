@@ -1,7 +1,6 @@
 // ---------------------------------------------------------
 // SUBPROGRAMAS: Implementação do Algoritmo Quicksort
 // ---------------------------------------------------------
-
 // Função auxiliar para particionar o arranjo
 fn partition(arr: mut [float], low: int, high: int) -> int {
     var pivot: float = arr[high];
@@ -26,7 +25,6 @@ fn partition(arr: mut [float], low: int, high: int) -> int {
     
     return i + 1;
 }
-
 // Subprograma principal de ordenação (Recursivo)
 fn quicksort(arr: mut [float], low: int, high: int) {
     if low < high {
@@ -40,7 +38,6 @@ fn quicksort(arr: mut [float], low: int, high: int) {
 // ---------------------------------------------------------
 // PROGRAMA PRINCIPAL: Entrada, Invocação e Saída
 // ---------------------------------------------------------
-
 fn main() {
     io.print("SISTEMA GEOLANG - ORDENACAO DE DISTANCIAS");
     
@@ -51,7 +48,9 @@ fn main() {
     
     // Leitura dos dados
     for i in 0..n {
-        distancias[i] = io.read_float("Digite a distancia da rota " + (i + 1) + " (em km):");
+        io.print("Digite a distancia da rota (em km):");
+        io.print(i + 1);
+        distancias[i] = io.read_float("Distancia: ");
     }
     
     io.print("Processando ordenacao matricial...");
@@ -59,8 +58,8 @@ fn main() {
     // Invocação: modificador 'mut' no parâmetro permite alteração in-place
     quicksort(distancias, 0, n - 1);
     
-    io.print("--- RESULTADO: DISTANCIAS ORDENADAS ---");
+    io.print("--- RESULTADO: DISTANCIAS ORDENADAS (em km) ---");
     for i in 0..n {
-        io.print(distancias[i] + " km");
+        io.print(distancias[i]);
     }
 }

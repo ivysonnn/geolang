@@ -532,6 +532,24 @@ field_list
 field
     : TK_ID TK_COLON type TK_SEMI
         {
+            /* Bloqueia recursao direta de struct: um campo nao pode    */
+            /* ter o mesmo tipo da struct que o contem, pois isso         */
+            /* gera, na traducao para C, um campo de tipo incompleto        */
+            /* (struct X { struct X campo; }; nao compila em C — o            */
+            /* tamanho da struct dependeria de si mesma). Essa verificacao      */
+            /* nao existia originalmente e foi adicionada apos um teste          */
+            /* adversarial identificar que o compilador reportava "0 erros"       */
+            /* semanticos para esse caso, mas o C gerado falhava ao compilar.      */
+            if ($3->kind == TYPE_STRUCT
+                && strcmp($3->struct_name, g_current_struct_name) == 0) {
+                semantic_error(
+                    "campo '%s' nao pode ter o mesmo tipo da struct '%s' "
+                    "que o contem (recursao direta de tipo nao e permitida; "
+                    "use um indice/identificador para modelar referencias "
+                    "recursivas, como em um pool de nos)",
+                    $1, g_current_struct_name);
+            }
+
             if (!struct_add_field(g_structs, g_current_struct_name, $1, $3)) {
                 semantic_error(
                     "campo '%s' duplicado na struct '%s'",
@@ -1083,7 +1101,19 @@ expr_stmt
 expr
     : expr TK_EQ  expr
         {
-            if (!type_equals($1.type, $3.type)
+            /* Bloqueia '==' entre dois structs: embora type_equals       */
+            /* considere dois structs do mesmo nome compatíveis (são o     */
+            /* mesmo tipo nominal), o operador '==' do C nao e definido      */
+            /* para tipos struct -- a traducao geraria C invalido. Para       */
+            /* comparar conteudo de structs, a GeoLang exige uma funcao         */
+            /* dedicada que compare campo a campo (ex: rational_igual no          */
+            /* Problema 4), nao o operador '==' direto.                            */
+            if ($1.type->kind == TYPE_STRUCT && $3.type->kind == TYPE_STRUCT) {
+                semantic_error(
+                    "operador '==' nao pode ser usado entre structs "
+                    "('%s'); compare campo a campo atraves de uma funcao "
+                    "dedicada", type_to_string($1.type));
+            } else if (!type_equals($1.type, $3.type)
                 && !(type_is_numeric($1.type) && type_is_numeric($3.type))) {
                 semantic_error(
                     "operandos incompativeis em '==': '%s' e '%s'",
@@ -1099,7 +1129,13 @@ expr
         }
     | expr TK_NEQ expr
         {
-            if (!type_equals($1.type, $3.type)
+            /* Mesma restricao de '==' acima, aplicada a '!='. */
+            if ($1.type->kind == TYPE_STRUCT && $3.type->kind == TYPE_STRUCT) {
+                semantic_error(
+                    "operador '!=' nao pode ser usado entre structs "
+                    "('%s'); compare campo a campo atraves de uma funcao "
+                    "dedicada", type_to_string($1.type));
+            } else if (!type_equals($1.type, $3.type)
                 && !(type_is_numeric($1.type) && type_is_numeric($3.type))) {
                 semantic_error(
                     "operandos incompativeis em '!=': '%s' e '%s'",

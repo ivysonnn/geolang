@@ -89,4 +89,66 @@ clean:
 	rm -f $(OUT) $(OUT_DBG)
 	rm -f src/semantic/test_symbol_table
 
-.PHONY: all debug clean test test-minimo test-erro test-symbols codegen-check run
+# -------------------------------------------------------
+# Roda a bateria de testes inteira de uma vez:
+#   1. build do projeto
+#   2. testes unitarios da tabela de simbolos
+#   3. todos os .geo de examples/ e problemas/, com codegen-check
+#      (gera o C reduzido e tenta compilar com gcc)
+# Ao final mostra um resumo: quantos compilaram (0 erros semanticos
+# + C valido) e quantos nao. Cada linha individual mostra o resultado
+# real (sucesso/erro semantico/erro sintatico/erro de C)
+# -- arquivos de teste de erro proposital DEVEM aparecer como erro
+# -------------------------------------------------------
+test-all: $(OUT)
+	@echo "=================================================="
+	@echo " 1. Testes unitarios da tabela de simbolos"
+	@echo "=================================================="
+	@$(MAKE) --no-print-directory test-symbols || true
+	@echo ""
+	@echo "=================================================="
+	@echo " 2. Todos os programas .geo (examples/ e problemas/)"
+	@echo "=================================================="
+	@total=0; ok=0; sem_erro=0; sint_erro=0; c_erro=0; \
+	for f in examples/*.geo problemas/*.geo; do \
+		[ -f "$$f" ] || continue; \
+		total=$$((total+1)); \
+		out=$$(./$(OUT) "$$f" 2>&1); \
+		if echo "$$out" | grep -q "ERRO SINTATICO"; then \
+			printf "  [SINTATICO] %-45s\n" "$$f"; \
+			sint_erro=$$((sint_erro+1)); \
+		elif echo "$$out" | grep -q "erro(s) semantico(s) encontrado"; then \
+			printf "  [SEMANTICO] %-45s\n" "$$f"; \
+			sem_erro=$$((sem_erro+1)); \
+		elif echo "$$out" | grep -q "0 erros semanticos"; then \
+			cfile="output/$$(basename $${f%.geo}).c"; \
+			if $(CC) -Wall -Wextra -c "$$cfile" -o /tmp/test_all_check.o > /tmp/test_all_check.log 2>&1; then \
+				printf "  [OK]        %-45s\n" "$$f"; \
+				ok=$$((ok+1)); \
+			else \
+				printf "  [C INVALIDO]%-45s\n" "$$f"; \
+				c_erro=$$((c_erro+1)); \
+			fi; \
+		else \
+			printf "  [INESPERADO]%-45s\n" "$$f"; \
+		fi; \
+	done; \
+	echo ""; \
+	echo "=================================================="; \
+	echo " Resumo"; \
+	echo "=================================================="; \
+	echo "  Total de arquivos .geo testados : $$total"; \
+	echo "  OK (0 erros + C valido)         : $$ok"; \
+	echo "  Erro sintatico                  : $$sint_erro"; \
+	echo "  Erro semantico                  : $$sem_erro"; \
+	echo "  C gerado invalido (gcc rejeitou): $$c_erro"; \
+	echo "=================================================="; \
+	echo "Revise as linhas acima: arquivos de teste de erro"; \
+	echo "proposital (ex: teste_*_duplicada, teste_*_errado,"; \
+	echo "erro_sintatico, teste_semantico) DEVEM aparecer como"; \
+	echo "SINTATICO/SEMANTICO -- isso e esperado, nao e falha."; \
+	echo "Todos os demais arquivos, incluindo os 6 problemas"; \
+	echo "(problema1.geo a problema6.geo) e quicksort.geo,"; \
+	echo "DEVEM aparecer como OK."
+
+.PHONY: all debug clean test test-minimo test-erro test-symbols codegen-check run test-all
