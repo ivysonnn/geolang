@@ -12,14 +12,6 @@ static unsigned int hash_string(const char *str) {
     return hash % HASH_SIZE;
 }
 
-static char *str_dup(const char *s) {
-    char *copy = (char *)malloc(strlen(s) + 1);
-    if (copy != NULL) {
-        strcpy(copy, s);
-    }
-    return copy;
-}
-
 Type *type_create(TypeKind kind) {
     Type *t = (Type *)malloc(sizeof(Type));
     t->kind = kind;
@@ -36,7 +28,7 @@ Type *type_create_array(Type *element_type) {
 
 Type *type_create_struct(const char *struct_name) {
     Type *t = type_create(TYPE_STRUCT);
-    t->struct_name = str_dup(struct_name);
+    t->struct_name = strdup(struct_name);
     return t;
 }
 
@@ -97,7 +89,7 @@ Type *type_clone(const Type *type) {
         clone->element_type = type_clone(type->element_type);
     }
     if (type->kind == TYPE_STRUCT) {
-        clone->struct_name = str_dup(type->struct_name);
+        clone->struct_name = strdup(type->struct_name);
     }
     return clone;
 }
@@ -239,7 +231,7 @@ bool var_insert(VarScopeStack *stack, const char *name, Type *type,
 
     unsigned int index = hash_string(name);
     VarEntry *entry = (VarEntry *)malloc(sizeof(VarEntry));
-    entry->name = str_dup(name);
+    entry->name = strdup(name);
     entry->type = type;
     entry->is_mut = is_mut;
     entry->line = line;
@@ -316,7 +308,7 @@ bool struct_insert(StructTable *table, const char *name, int line) {
 
     unsigned int index = hash_string(name);
     StructEntry *entry = (StructEntry *)malloc(sizeof(StructEntry));
-    entry->name = str_dup(name);
+    entry->name = strdup(name);
     entry->fields = NULL;
     entry->line = line;
     entry->next = table->buckets[index];
@@ -346,7 +338,7 @@ bool struct_add_field(StructTable *table, const char *struct_name,
     }
 
     StructField *field = (StructField *)malloc(sizeof(StructField));
-    field->name = str_dup(field_name);
+    field->name = strdup(field_name);
     field->type = field_type;
     field->next = NULL;
     if (entry->fields == NULL) {
@@ -413,7 +405,7 @@ bool func_insert(FuncTable *table, const char *name, Type *return_type,
 
     unsigned int index = hash_string(name);
     FuncEntry *entry = (FuncEntry *)malloc(sizeof(FuncEntry));
-    entry->name = str_dup(name);
+    entry->name = strdup(name);
     entry->return_type = return_type;
     entry->params = NULL;
     entry->param_count = 0;
@@ -429,7 +421,7 @@ bool func_add_param(FuncTable *table, const char *func_name,
     if (entry == NULL) return false;
 
     ParamInfo *param = (ParamInfo *)malloc(sizeof(ParamInfo));
-    param->name = str_dup(param_name);
+    param->name = strdup(param_name);
     param->type = param_type;
     param->is_mut = is_mut;
     param->next = NULL;
