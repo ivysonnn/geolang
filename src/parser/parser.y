@@ -298,7 +298,7 @@ static void if_chain_lend_pop(void) {
 %token TK_ELSE TK_ELSEIF TK_RETURN TK_IN TK_ALLOCATE
 
 %token TK_EQ TK_NEQ TK_GREATER TK_LESS TK_GEQ TK_LEQ
-%token TK_ASSIGN
+%token TK_ASSIGN TK_SHORT_DECL
 %token TK_SUM TK_MIN TK_MUL TK_DIV
 %token TK_ARROW TK_RANGE
 
@@ -617,7 +617,28 @@ stmt
 /* var x: tipo;        */
 /* var x = expr;       */
 var_decl
-    : TK_VAR TK_ID TK_COLON type TK_ASSIGN expr TK_SEMI
+    : TK_ID TK_SHORT_DECL expr TK_SEMI
+        {
+            /* Inferência de tipo: o tipo da variável é exatamente o */
+            /* tipo sintetizado pela expressão do lado direito —      */
+            /* um atributo sintetizado sendo copiado para a tabela     */
+            /* de símbolos, exemplo direto de tradução dirigida pela    */
+            /* sintaxe (ver documentação, secao sobre SDT).              */
+            if (!var_insert(g_vars, $1, $3.type, false, yylineno)) {
+                semantic_error(
+                    "variavel '%s' ja declarada neste escopo", $1);
+            }
+            printf("[PARSER] Declaracao de variavel curta com inferencia: %s : %s\n",
+                   $1, type_to_string($3.type));
+
+            char *c_type = c_type_name($3.type);
+            $$.code = strbuf_create();
+            strbuf_appendf($$.code, "%s %s = %s;\n", c_type, $1, $3.code);
+            free(c_type);
+            free($3.code);
+        }
+
+    | TK_VAR TK_ID TK_COLON type TK_ASSIGN expr TK_SEMI
         {
             if (!type_assignable($4, $6.type)) {
                 semantic_error(

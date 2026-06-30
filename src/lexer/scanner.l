@@ -36,6 +36,7 @@ matrix      { return TK_MATRIX; }
 ">"         { return TK_GREATER; }
 "<"         { return TK_LESS; }
 "="         { return TK_ASSIGN; }
+":="        { return TK_SHORT_DECL; }
 "+"         { return TK_SUM; }
 "-"         { return TK_MIN; }
 "*"         { return TK_MUL; }

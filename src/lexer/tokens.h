@@ -46,6 +46,7 @@ enum tokens {
 
     /* operadores aritméticos e atribuição */
     TK_ASSIGN,
+    TK_SHORT_DECL,
     TK_SUM,
     TK_MIN,
     TK_MUL,
